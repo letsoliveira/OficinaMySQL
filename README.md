@@ -1,2 +1,120 @@
 # OficinaMySQL
 Desafio SQL - Criar BD de oficina
+
+## -- CRIAR DATABASE
+
+    CREATE DATABASE oficina;
+    USE oficina;
+
+## -- CRIAR TABELAS
+
+    CREATE TABLE clients (
+        idClients INT AUTO_INCREMENT PRIMARY KEY,    
+        fullname VARCHAR(200),    
+        contact VARCHAR(15)    
+    );
+
+    CREATE TABLE car (
+        idCar INT AUTO_INCREMENT PRIMARY KEY,
+        idClients INT,        
+        brand VARCHAR(50),        
+        releaseYear INT,        
+        FOREIGN KEY (idClients) REFERENCES clients(idClients)        
+    );
+
+    CREATE TABLE service (
+        idService INT AUTO_INCREMENT PRIMARY KEY,
+        descriptionService VARCHAR(300),
+        price DECIMAL(10, 2)
+    );
+
+    CREATE TABLE carService (
+      idCScar INT,
+      idCSservice INT,
+      csStatus enum ('Agendado', 'Em manutenção', 'Pronto para retirada') default 'Agendado',
+      PRIMARY KEY (idCScar, idCSservice),
+      CONSTRAINT fk_cs_car FOREIGN KEY (idCScar) REFERENCES car(idCar),
+      CONSTRAINT fk_cs_service FOREIGN KEY (idCSservice) REFERENCES service(idService)
+    );
+
+## -- INSERIR DADOS DOS CLIENTES
+
+    INSERT INTO clients (fullname, contact) VALUES 
+  	('Lincoln Camargo', '1234567890'),
+  	('Jessica Souza', '9876543210'),
+  	('Luciana Alves', '9876543210'),
+  	('Jonatas Faria', '1176543210');
+
+## -- INSERIR DADOS DOS CARROS
+
+    INSERT INTO car (idClients, brand, releaseYear) VALUES 
+  	(1, 'BMW', 2023),
+  	(2, 'GOL', 2021),
+  	(3, 'HB20', 2021),
+  	(4, 'TORO', 2020);
+
+## -- INSERIR DADOS DOS SERVIÇOS
+
+    INSERT INTO service (descriptionService, price) VALUES 
+  	('Calibragem de pneus', 50.00),
+  	('Troca de óleo', 150.50),
+  	('Troca do filtro de ar', 80.80),
+      ('Troca de pneus', 100.10);
+    
+## -- INSERIR TABELA N-N CARROS E SERVIÇOS
+
+    INSERT INTO carService (idCScar, idCSservice, csStatus) VALUES
+  	(1, 1, 'Agendado'),
+      (2, 2, 'Em manutenção'),
+      (3, 3, 'Pronto para retirada'),
+      (4, 4, 'Em manutenção'),
+  	(1, 4, 'Agendado'),
+      (2, 3, 'Em manutenção'),
+      (3, 2, 'Pronto para retirada'),
+      (4, 1, 'Em manutenção');
+
+## -- RECUPERAÇÃO DE TODOS OS CARROS COM ANO DE FABRICAÇÃO ACIMA DE 2020
+
+    SELECT c.brand, c.releaseYear
+    FROM car c
+    WHERE c.releaseYear > 2020; 
+
+## -- RECUPERAÇÃO DE UM SERVIÇO ESPECÍFICO, VALOR DO SERVIÇO E STATUS DOS CARROS
+
+    SELECT s.descriptionService, s.price, cs.csStatus
+    FROM service s
+    JOIN carService cs ON s.idService = cs.idCSservice
+    HAVING s.descriptionService = 'Calibragem de pneus';
+
+## -- CALCULAR O VALOR TOTAL DE SERVIÇOS POR CARRO
+
+    SELECT carService.idCScar, SUM(service.price) AS ValorTotal
+    FROM carService
+    JOIN service ON carService.idCSservice = service.idService
+    GROUP BY carService.idCScar;
+
+## -- RECUPERAÇÃO DOS CLIENTES QUE GASTARAM MAIS DE R$ 200,00 EM SERVIÇOS
+
+    SELECT clients.fullname AS Cliente, SUM(service.price) AS ValorTotal
+    FROM clients
+    JOIN car ON clients.idClients = car.idClients
+    JOIN carService ON car.idCar = carService.idCScar
+    JOIN service ON carService.idCSservice = service.idService
+    GROUP BY clients.idClients
+    HAVING ValorTotal > 200;
+
+## -- QUANTO A OFICINA VAI RECEBER DOS CARROS QUE ESTÃO PRONTOS PARA RETIRADA?
+
+    SELECT carService.csStatus AS ProntoParaRetirada, car.brand AS Modelo, SUM(service.price) AS ValorTotal
+    FROM carService
+    JOIN service ON carService.idCSservice = service.idService
+    JOIN car ON carService.idCScar = car.idCar
+    WHERE csStatus = 'Pronto para retirada';
+
+## -- QUAIS OS SERVIÇOS QUE ESTÃO AGENDADOS, PARA QUAL MODELO DE CARRO E QUAL O NOME DO CLIENTE QUE OS AGENDOU?
+    SELECT carService.csStatus AS Agendados, car.brand AS Modelo, clients.fullname AS Cliente, service.descriptionService AS Servico
+    FROM clients
+    JOIN car ON clients.idClients = car.idClients
+    JOIN carService ON car.idCar = carService.idCScar
+    JOIN service ON carService.idCSservice = service.idService
+    WHERE csStatus = 'Agendado';
